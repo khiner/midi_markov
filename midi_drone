@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+#############################################
+# Create a drone-like swell from the midi notes in the given file by changing the notes of the end-notes
+#############################################
+
+require 'midilib'
+
+puts 'Usage: midi_drone.rb {midi_file_path}' unless ARGV.size == 1
+
+midi_file_path = ARGV[0]
+puts midi_file_path
+
+input_sequence = MIDI::Sequence.new
+File.open(midi_file_path, 'rb') { | file | input_sequence.read(file) }
+
+
+output_sequence = MIDI::Sequence.new
+output_sequence.tracks = input_sequence.collect do |input_track|
+  output_track = MIDI::Track.new(output_sequence)
+  output_track.events = input_track.collect do |input_event|
+    if MIDI::NoteOffEvent === input_event
+      input_event.note -= 12
+    end
+
+    input_event
+  end
+
+  output_track
+end
+
+File.open('drone.mid', 'wb') { | file | output_sequence.write(file) }
