@@ -46,7 +46,7 @@ def generate_markov_map(sequence)
   events_starting_at = {}
   sequence.each do |track|
     track.each do |event|
-      if MIDI::NoteOnEvent === event
+      if MIDI::NoteEvent === event
         start_time = event.time_from_start
         events_starting_at[start_time] ||= Events.new
         events_starting_at[start_time] << event
@@ -82,19 +82,7 @@ NUM_STEPS.times do
   next unless markov_map[next_events] # don't jump to the last note
   break unless next_events
 
-  # Temporary! Make all notes of equal length and create matching end events
-  next_events.events.each do |event|
-    event.delta_time = 0
-  end
-
-  end_events = next_events.events.collect do |event|
-    MIDI::NoteOffEvent.new(0, event.note, event.velocity, 0)
-  end
-
-  end_events.first.delta_time = 120
-
   track.events += next_events.events
-  track.events += end_events
 
   last_events = next_events
 end
