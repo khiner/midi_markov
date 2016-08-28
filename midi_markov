@@ -2,14 +2,12 @@
 
 require 'midilib'
 require 'set'
+require 'find'
 
 puts 'Usage: midi_markov.rb {midi_file_path}' unless ARGV.size == 1
 
 midi_file_path = ARGV[0]
 puts midi_file_path
-
-input_sequence = MIDI::Sequence.new
-File.open(midi_file_path, 'rb') { | file | input_sequence.read(file) }
 
 
 # Group simultaneous notes together to use as a key in a markov map
@@ -42,7 +40,7 @@ class Events
 end
 
 
-def generate_markov_map(sequence)
+def add_to_markov_map(markov_map, sequence)
   events_starting_at = {}
   sequence.each do |track|
     track.each do |event|
@@ -56,19 +54,29 @@ def generate_markov_map(sequence)
 
   ordered_events = events_starting_at.values
 
-  markov_map = {}
   ordered_events.each_with_index do |events, i|
     if i < ordered_events.size
       markov_map[events] ||= []
       markov_map[events] << ordered_events[i + 1]
     end
   end
-
-  markov_map
 end
 
 
-markov_map = generate_markov_map(input_sequence)
+markov_map = {}
+input_midi_files = if File.directory?(midi_file_path)
+  Find.find(midi_file_path).select do |f|
+    File.directory?(f) ? nil : f
+  end.compact
+else
+  [midi_file_path]
+end
+
+input_midi_files.each do |input_midi_file|
+  input_sequence = MIDI::Sequence.new
+  File.open(input_midi_file, 'rb') { |f| input_sequence.read(f) }
+  add_to_markov_map(markov_map, input_sequence)
+end
 
 NUM_STEPS = 8 * 32
 
