@@ -3,12 +3,23 @@
 require 'midilib'
 require 'set'
 require 'find'
+require 'optparse'
 
-puts 'Usage: midi_markov.rb {midi_file_path}' unless ARGV.size == 1
+options = {}
+OptionParser.new do |opts|
+  opts.banner = 'Usage: midi_markov [options] {midi_file_path}'
+
+  opts.on('--min-sequence', :numeric, 'Specify minimum lenght of identical sequence') do |m|
+    options[:min_sequence] = m
+  end
+end.parse!
 
 midi_file_path = ARGV[0]
-puts midi_file_path
-
+input_midi_files = if File.directory?(midi_file_path)
+  Find.find(midi_file_path).select { |f| File.directory?(f) ? nil : f }.compact
+else
+  [midi_file_path]
+end
 
 # Group simultaneous notes together to use as a key in a markov map
 class Events
@@ -62,53 +73,59 @@ def add_to_markov_map(markov_map, sequence)
   end
 end
 
-
-markov_map = {}
-input_midi_files = if File.directory?(midi_file_path)
-  Find.find(midi_file_path).select do |f|
-    File.directory?(f) ? nil : f
-  end.compact
-else
-  [midi_file_path]
-end
-
-input_midi_files.each do |input_midi_file|
-  input_sequence = MIDI::Sequence.new
-  File.open(input_midi_file, 'rb') { |f| input_sequence.read(f) }
-  add_to_markov_map(markov_map, input_sequence)
-end
-
-NUM_STEPS = 8 * 32
-
-output_sequence = MIDI::Sequence.new
-track = MIDI::Track.new(output_sequence)
-last_events = markov_map.keys.first
-track.events += last_events.events # seed
-
-NUM_STEPS.times do
-  next_events = markov_map[last_events].sample
-  next unless markov_map[next_events] # don't jump to the last note
-  break unless next_events
-
+def on_and_off_events(events)
   # Temporary! Make all notes of equal length and create matching end events
-  next_events.events.each do |event|
-    event.delta_time = 0
+  on_events = events.collect do |event|
+    MIDI::NoteOnEvent.new(0, event.note, event.velocity, 0)
   end
 
-  end_events = next_events.events.collect do |event|
+  off_events = events.collect do |event|
     MIDI::NoteOffEvent.new(0, event.note, event.velocity, 0)
   end
 
-  end_events.first.delta_time = 120
+  off_events.first.delta_time = 120
 
-  track.events += next_events.events
-  track.events += end_events
-
-  last_events = next_events
+  on_events + off_events
 end
 
-track.recalc_times
-output_sequence.tracks << track
+def generate_markov_map(midi_files)
+  markov_map = {}
+  midi_files.each do |midi_file|
+    sequence = MIDI::Sequence.new
+    File.open(midi_file, 'rb') { |f| sequence.read(f) }
+    add_to_markov_map(markov_map, sequence)
+  end
 
-File.open('markov.mid', 'wb') { | file | output_sequence.write(file) }
+  markov_map
+end
+
+def generate_sequence(markov_map, num_steps)
+  sequence = MIDI::Sequence.new
+  track = MIDI::Track.new(sequence)
+
+  previous_events = markov_map.keys.first
+  track.events += on_and_off_events(previous_events.events) # seed
+  
+  num_steps.times do
+    next_events = markov_map[previous_events].sample
+    next unless markov_map[next_events] # don't jump to the last note
+    break unless next_events
+  
+    track.events += on_and_off_events(next_events.events)
+  
+    previous_events = next_events
+  end
+  
+  track.recalc_times
+  sequence.tracks << track
+
+  sequence
+end
+
+
+markov_map = generate_markov_map(input_midi_files)
+sequence = generate_sequence(markov_map, 8 * 64)
+
+File.open('markov.mid', 'wb') { | file | sequence.write(file) }
+
 `timidity markov.mid`
