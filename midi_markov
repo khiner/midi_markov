@@ -6,6 +6,7 @@ require 'find'
 require 'optparse'
 require 'pry'
 
+
 OPTIONS = {}
 OptionParser.new do |opts|
   opts.banner = 'Usage: midi_markov [options] {midi_file_path}'
@@ -13,9 +14,26 @@ OptionParser.new do |opts|
   opts.on('--min-sequence [MIN_SEQUENCE]', Integer, 'Specify minimum lenght of identical sequence') do |m|
     OPTIONS[:min_sequence] = m
   end
+
+  opts.on('--rand-seed [RAND_SEED]', Integer, 'Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)') do |r|
+    OPTIONS[:rand_seed] = r
+  end
 end.parse!
 
 OPTIONS[:min_sequence] ||= 1
+OPTIONS[:rand_seed] ||= rand(1000)
+
+puts "Using rand-seed value of #{OPTIONS[:rand_seed]}"
+
+# allow deterministic sampling
+class Array
+  R = OPTIONS[:rand_seed] ? Random.new(OPTIONS[:rand_seed]) : Random.new
+
+  def sample
+    self[R.rand(length)]
+  end
+end
+
 
 midi_file_path = ARGV[0]
 input_midi_files = if File.directory?(midi_file_path)
@@ -96,7 +114,7 @@ def generate_markov_map(midi_files)
     add_to_markov_map(markov_map, sequence)
   end
 
-  puts markov_map.values.collect(&:size).max
+#  puts markov_map.values.collect(&:size).max
   markov_map
 end
 
@@ -125,10 +143,11 @@ def generate_sequence(markov_map, num_steps)
   sequence
 end
 
+Random.new_seed
 
 markov_map = generate_markov_map(input_midi_files)
 sequence = generate_sequence(markov_map, 8 * 32)
 
 File.open('markov.mid', 'wb') { | file | sequence.write(file) }
 
-`timidity markov.mid`
+`timidity markov.mid 2> /dev/null`
