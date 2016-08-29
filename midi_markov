@@ -4,15 +4,18 @@ require 'midilib'
 require 'set'
 require 'find'
 require 'optparse'
+require 'pry'
 
-options = {}
+OPTIONS = {}
 OptionParser.new do |opts|
   opts.banner = 'Usage: midi_markov [options] {midi_file_path}'
 
-  opts.on('--min-sequence', :numeric, 'Specify minimum lenght of identical sequence') do |m|
-    options[:min_sequence] = m
+  opts.on('--min-sequence [MIN_SEQUENCE]', Integer, 'Specify minimum lenght of identical sequence') do |m|
+    OPTIONS[:min_sequence] = m
   end
 end.parse!
+
+OPTIONS[:min_sequence] ||= 1
 
 midi_file_path = ARGV[0]
 input_midi_files = if File.directory?(midi_file_path)
@@ -65,11 +68,10 @@ def add_to_markov_map(markov_map, sequence)
 
   ordered_events = events_starting_at.values
 
-  ordered_events.each_with_index do |events, i|
-    if i < ordered_events.size
-      markov_map[events] ||= []
-      markov_map[events] << ordered_events[i + 1]
-    end
+  ordered_events.each_cons(OPTIONS[:min_sequence] + 1).each_with_index do |events, i|
+    key = events[0...-1]
+    markov_map[key] ||= []
+    markov_map[key] << events[-1]
   end
 end
 
@@ -96,6 +98,7 @@ def generate_markov_map(midi_files)
     add_to_markov_map(markov_map, sequence)
   end
 
+  puts markov_map.values.collect(&:size).max
   markov_map
 end
 
@@ -103,17 +106,18 @@ def generate_sequence(markov_map, num_steps)
   sequence = MIDI::Sequence.new
   track = MIDI::Track.new(sequence)
 
-  previous_events = markov_map.keys.first
-  track.events += on_and_off_events(previous_events.events) # seed
+  previous_events_set = markov_map.keys.first
+  track.events += on_and_off_events(previous_events_set.first.events) # seed
   
   num_steps.times do
-    next_events = markov_map[previous_events].sample
-    next unless markov_map[next_events] # don't jump to the last note
-    break unless next_events
-  
+    next_events_list = markov_map[previous_events_set]
+    break unless next_events_list && !next_events_list.empty?
+    next_events = next_events_list.sample
+
+    previous_events_set.shift # rolling window of 'min_sequence' events as key
+    previous_events_set << next_events
+
     track.events += on_and_off_events(next_events.events)
-  
-    previous_events = next_events
   end
   
   track.recalc_times
@@ -124,7 +128,7 @@ end
 
 
 markov_map = generate_markov_map(input_midi_files)
-sequence = generate_sequence(markov_map, 8 * 64)
+sequence = generate_sequence(markov_map, 8 * 128)
 
 File.open('markov.mid', 'wb') { | file | sequence.write(file) }
 
