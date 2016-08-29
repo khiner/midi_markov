@@ -11,6 +11,10 @@ OPTIONS = {}
 OptionParser.new do |opts|
   opts.banner = 'Usage: midi_markov [options] {midi_file_path}'
 
+  opts.on('--length [LENGTH]', Integer, 'Length of the generated piece') do |l|
+    OPTIONS[:length] = l
+  end
+
   opts.on('--min-sequence [MIN_SEQUENCE]', Integer, 'Specify minimum lenght of identical sequence') do |m|
     OPTIONS[:min_sequence] = m
   end
@@ -18,8 +22,21 @@ OptionParser.new do |opts|
   opts.on('--rand-seed [RAND_SEED]', Integer, 'Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)') do |r|
     OPTIONS[:rand_seed] = r
   end
+
+  opts.on('--on-delta [ON_DELTA]', Integer, 'This value will be used for the delta_time value of each \'on\' note.  If not provided, delta_time values will be derived from source notes.') do |d|
+    OPTIONS[:on_delta] = d
+  end
+
+  opts.on('--off-delta [OFF_DELTA]', Integer, 'This value will be used for the delta_time value of each \'off\' note.  If not provided, delta_time values will be derived from source notes.') do |d|
+    OPTIONS[:off_delta] = d
+  end
+
+  opts.on('--drone', 'Introduce a little bug that makes things drone-y') do
+    OPTIONS[:drone] = true
+  end
 end.parse!
 
+OPTIONS[:length] ||= 8 * 32
 OPTIONS[:min_sequence] ||= 1
 OPTIONS[:rand_seed] ||= rand(1000)
 
@@ -96,11 +113,13 @@ end
 def on_and_off_events(events)
   # Temporary! Make all notes of equal length and create matching end events
   on_events = events.collect do |event|
-    MIDI::NoteOnEvent.new(event.delta_time, event.note, event.velocity, 0)
+    MIDI::NoteOnEvent.new(OPTIONS[:drone] ? event.delta_time : 0,
+      event.note, event.velocity, OPTIONS[:on_delta] || event.delta_time)
   end
 
   off_events = events.collect do |event|
-    MIDI::NoteOffEvent.new(event.off.delta_time, event.note, event.off.velocity, 0)
+    MIDI::NoteOffEvent.new(OPTIONS[:drone] ? event.off.delta_time : 0,
+      event.note, event.off.velocity, OPTIONS[:off_delta] || event.off.delta_time)
   end
 
   on_events + off_events
@@ -146,7 +165,7 @@ end
 Random.new_seed
 
 markov_map = generate_markov_map(input_midi_files)
-sequence = generate_sequence(markov_map, 8 * 32)
+sequence = generate_sequence(markov_map, OPTIONS[:length])
 
 File.open('markov.mid', 'wb') { | file | sequence.write(file) }
 

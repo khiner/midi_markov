@@ -1,1 +1,4 @@
-hayden_bug_1: 901
+haydn_bug_1: --min-sequence=2 --rand-seed=901 --drone --on-delta=0 --off-delta=0 ../midi_files/haydn
+chopin_good_1: --min-sequence=2 --rand-seed=881 ../midi_files/chopin
+chopin_good_2: --min-sequence=2 --rand-seed=702 ../midi_files/chopin
+chopin_good_3: --min-sequence=2 --rand-seed=249 ../midi_files/chopin
