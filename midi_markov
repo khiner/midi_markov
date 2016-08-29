@@ -78,14 +78,12 @@ end
 def on_and_off_events(events)
   # Temporary! Make all notes of equal length and create matching end events
   on_events = events.collect do |event|
-    MIDI::NoteOnEvent.new(0, event.note, event.velocity, 0)
+    MIDI::NoteOnEvent.new(event.delta_time, event.note, event.velocity, 0)
   end
 
   off_events = events.collect do |event|
-    MIDI::NoteOffEvent.new(0, event.note, event.velocity, 0)
+    MIDI::NoteOffEvent.new(event.off.delta_time, event.note, event.off.velocity, 0)
   end
-
-  off_events.first.delta_time = 120
 
   on_events + off_events
 end
@@ -106,8 +104,9 @@ def generate_sequence(markov_map, num_steps)
   sequence = MIDI::Sequence.new
   track = MIDI::Track.new(sequence)
 
-  previous_events_set = markov_map.keys.first
-  track.events += on_and_off_events(previous_events_set.first.events) # seed
+  # seed
+  previous_events_set = markov_map.keys.sample
+  track.events += on_and_off_events(previous_events_set.sample.events)
   
   num_steps.times do
     next_events_list = markov_map[previous_events_set]
@@ -128,7 +127,7 @@ end
 
 
 markov_map = generate_markov_map(input_midi_files)
-sequence = generate_sequence(markov_map, 8 * 128)
+sequence = generate_sequence(markov_map, 8 * 32)
 
 File.open('markov.mid', 'wb') { | file | sequence.write(file) }
 
