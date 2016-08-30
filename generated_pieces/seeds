@@ -2,3 +2,5 @@ haydn_bug_1: --min-sequence=2 --rand-seed=901 --drone --on-delta=0 --off-delta=0
 chopin_good_1: --min-sequence=2 --rand-seed=881 ../midi_files/chopin
 chopin_good_2: --min-sequence=2 --rand-seed=702 ../midi_files/chopin
 chopin_good_3: --min-sequence=2 --rand-seed=249 ../midi_files/chopin
+all_good_2: --min-sequence=4 --rand-seed=254 ../midi_files/
+all_good_2: --min-sequence=4 --on-delta=0 --rand-seed=900 ../midi_files/
