@@ -169,7 +169,7 @@ def generate_sequence(markov_map, num_steps)
   
   num_steps.times do
     next_event_group_candidates = markov_map[previous_event_groups]
-    break unless next_event_group_candidates && !next_event_group_candidates.empty?
+    break unless next_event_group_candidates && next_event_group_candidates.any?
     next_event_group = next_event_group_candidates.sample
 
     previous_event_groups.shift # rolling window of 'min_sequence' events as key
