@@ -4,3 +4,4 @@ chopin_good_2: --min-sequence=2 --rand-seed=702 ../midi_files/chopin
 chopin_good_3: --min-sequence=2 --rand-seed=249 ../midi_files/chopin
 all_good_2: --min-sequence=4 --rand-seed=254 ../midi_files/
 all_good_2: --min-sequence=4 --on-delta=0 --rand-seed=900 ../midi_files/
+albeniz_good_1: --min-sequence=2 --rand-seed=402 --length=384 ../midi_files/albeniz/

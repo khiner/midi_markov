@@ -11,12 +11,20 @@ OPTIONS = {}
 OptionParser.new do |opts|
   opts.banner = 'Usage: midi_markov [options] {midi_file_path}'
 
+  opts.on('--midi-path [FILE]', String, 'Path of MIDI file or directory to recursively search for MIDI files for training the Markov model') do |f|
+    OPTIONS[:midi_path] = f
+  end
+
   opts.on('--length [LENGTH]', Integer, 'Length of the generated piece') do |l|
     OPTIONS[:length] = l
   end
 
   opts.on('--min-sequence [MIN_SEQUENCE]', Integer, 'Specify minimum lenght of identical sequence') do |m|
     OPTIONS[:min_sequence] = m
+  end
+
+  opts.on('--match-delta', 'Require generated notes to have consecutive delta_times as well as note values') do
+    OPTIONS[:match_delta] = true
   end
 
   opts.on('--rand-seed [RAND_SEED]', Integer, 'Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)') do |r|
@@ -36,9 +44,10 @@ OptionParser.new do |opts|
   end
 end.parse!
 
+OPTIONS[:midi_path] ||= './midi_files'
 OPTIONS[:length] ||= 8 * 32
-OPTIONS[:min_sequence] ||= 1
-OPTIONS[:rand_seed] ||= rand(1000)
+OPTIONS[:min_sequence] ||= 2
+OPTIONS[:rand_seed] ||= rand(10_000)
 
 puts "Using rand-seed value of #{OPTIONS[:rand_seed]}"
 
@@ -51,29 +60,23 @@ class Array
   end
 end
 
-
-midi_file_path = ARGV[0]
-input_midi_files = if File.directory?(midi_file_path)
-  Find.find(midi_file_path).select { |f| File.directory?(f) ? nil : f }.compact
-else
-  [midi_file_path]
-end
-
 # Group simultaneous notes together to use as a key in a markov map
 class Events
-  attr_accessor :events, :notes
+  attr_accessor :events, :notes, :delta_times
 
   def initialize(events=[])
     @events = events
     @notes = events.collect(&:note)
+    @delta_times = events.collect(&:off).collect(&:delta_time)
   end
 
   def eql?(other_events)
-    other_events.class == self.class && other_events.notes == other_events.notes
+    self.class == other_events.class && self.notes == other_events.notes &&
+      (!OPTIONS[:match_delta] || self.delta_times == other_events.delta_times)
   end
 
   def hash
-    notes.hash
+    @notes.hash + (OPTIONS[:match_delta] ? (13 * @delta_times.hash) : 0)
   end
 
   def <<(event)
@@ -81,10 +84,11 @@ class Events
     @events << event
     @notes ||= Set.new
     @notes << event.note
+    @delta_times << event.off.delta_time
   end
 
   def to_s
-    notes.to_s
+    @notes.to_s
   end
 end
 
@@ -133,7 +137,7 @@ def generate_markov_map(midi_files)
     add_to_markov_map(markov_map, sequence)
   end
 
-#  puts markov_map.values.collect(&:size).max
+  puts markov_map.values.collect(&:size).max
   markov_map
 end
 
@@ -162,7 +166,11 @@ def generate_sequence(markov_map, num_steps)
   sequence
 end
 
-Random.new_seed
+input_midi_files = if File.directory?(OPTIONS[:midi_path])
+  Find.find(OPTIONS[:midi_path]).select { |f| File.directory?(f) ? nil : f }.compact
+else
+  [OPTIONS[:midi_path]]
+end
 
 markov_map = generate_markov_map(input_midi_files)
 sequence = generate_sequence(markov_map, OPTIONS[:length])
