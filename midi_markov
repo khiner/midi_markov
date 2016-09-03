@@ -61,30 +61,30 @@ class Array
 end
 
 # Group simultaneous notes together to use as a key in a markov map
-class Events
-  attr_accessor :events, :notes, :delta_times
+class MidiEventGroup
+  attr_accessor :midi_events, :notes, :delta_times
 
-  def initialize(events=[])
-    @events = events
-    @notes = events.collect(&:note)
-    @delta_times = events.collect(&:off).collect(&:delta_time)
+  def initialize(midi_events=[])
+    @midi_events = midi_events
+    @notes = midi_events.collect(&:note)
+    @delta_times = midi_events.collect(&:off).collect(&:delta_time)
   end
 
-  def eql?(other_events)
-    self.class == other_events.class && self.notes == other_events.notes &&
-      (!OPTIONS[:match_delta] || self.delta_times == other_events.delta_times)
+  def eql?(other_event_group)
+    self.class == other_event_group.class && self.notes == other_event_group.notes &&
+      (!OPTIONS[:match_delta] || self.delta_times == other_event_group.delta_times)
   end
 
   def hash
     @notes.hash + (OPTIONS[:match_delta] ? (13 * @delta_times.hash) : 0)
   end
 
-  def <<(event)
-    @events ||= []
-    @events << event
+  def <<(midi_event)
+    @midi_events ||= []
+    @midi_events << midi_event
     @notes ||= Set.new
-    @notes << event.note
-    @delta_times << event.off.delta_time
+    @notes << midi_event.note
+    @delta_times << midi_event.off.delta_time
   end
 
   def to_s
@@ -99,7 +99,7 @@ def add_to_markov_map(markov_map, sequence)
     track.each do |event|
       if MIDI::NoteOnEvent === event
         start_time = event.time_from_start
-        events_starting_at[start_time] ||= Events.new
+        events_starting_at[start_time] ||= MidiEventGroup.new
         events_starting_at[start_time] << event
       end
     end
@@ -114,16 +114,16 @@ def add_to_markov_map(markov_map, sequence)
   end
 end
 
-def on_and_off_events(events)
+def on_and_off_events(midi_events)
   # Temporary! Make all notes of equal length and create matching end events
-  on_events = events.collect do |event|
-    MIDI::NoteOnEvent.new(OPTIONS[:drone] ? event.delta_time : 0,
-      event.note, event.velocity, OPTIONS[:on_delta] || event.delta_time)
+  on_events = midi_events.collect do |midi_event|
+    MIDI::NoteOnEvent.new(OPTIONS[:drone] ? midi_event.delta_time : 0,
+      midi_event.note, midi_event.velocity, OPTIONS[:on_delta] || midi_event.delta_time)
   end
 
-  off_events = events.collect do |event|
-    MIDI::NoteOffEvent.new(OPTIONS[:drone] ? event.off.delta_time : 0,
-      event.note, event.off.velocity, OPTIONS[:off_delta] || event.off.delta_time)
+  off_events = midi_events.collect do |midi_event|
+    MIDI::NoteOffEvent.new(OPTIONS[:drone] ? midi_event.off.delta_time : 0,
+      midi_event.note, midi_event.off.velocity, OPTIONS[:off_delta] || midi_event.off.delta_time)
   end
 
   on_events + off_events
@@ -146,18 +146,18 @@ def generate_sequence(markov_map, num_steps)
   track = MIDI::Track.new(sequence)
 
   # seed
-  previous_events_set = markov_map.keys.sample
-  track.events += on_and_off_events(previous_events_set.sample.events)
+  previous_event_groups = markov_map.keys.sample
+  track.events += on_and_off_events(previous_event_groups.sample.midi_events)
   
   num_steps.times do
-    next_events_list = markov_map[previous_events_set]
-    break unless next_events_list && !next_events_list.empty?
-    next_events = next_events_list.sample
+    next_event_group_candidates = markov_map[previous_event_groups]
+    break unless next_event_group_candidates && !next_event_group_candidates.empty?
+    next_event_group = next_event_group_candidates.sample
 
-    previous_events_set.shift # rolling window of 'min_sequence' events as key
-    previous_events_set << next_events
+    previous_event_groups.shift # rolling window of 'min_sequence' events as key
+    previous_event_groups << next_event_group
 
-    track.events += on_and_off_events(next_events.events)
+    track.events += on_and_off_events(next_event_group.midi_events)
   end
   
   track.recalc_times
@@ -166,6 +166,7 @@ def generate_sequence(markov_map, num_steps)
   sequence
 end
 
+#===================================================================================
 input_midi_files = if File.directory?(OPTIONS[:midi_path])
   Find.find(OPTIONS[:midi_path]).select { |f| File.directory?(f) ? nil : f }.compact
 else
@@ -174,7 +175,5 @@ end
 
 markov_map = generate_markov_map(input_midi_files)
 sequence = generate_sequence(markov_map, OPTIONS[:length])
-
 File.open('markov.mid', 'wb') { | file | sequence.write(file) }
-
 `timidity markov.mid 2> /dev/null`
