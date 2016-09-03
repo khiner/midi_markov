@@ -76,7 +76,7 @@ class MidiEventGroup
   end
 
   def hash
-    @notes.hash + (OPTIONS[:match_delta] ? (13 * @delta_times.hash) : 0)
+    OPTIONS[:match_delta] ? (@notes + @delta_times).hash : @notes.hash
   end
 
   def <<(midi_event)
