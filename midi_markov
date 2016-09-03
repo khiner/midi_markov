@@ -6,7 +6,6 @@ require 'find'
 require 'optparse'
 require 'pry'
 
-
 OPTIONS = {}
 OptionParser.new do |opts|
   opts.banner = 'Usage: midi_markov [options] {midi_file_path}'
@@ -25,6 +24,10 @@ OptionParser.new do |opts|
 
   opts.on('--match-delta', 'Require generated notes to have consecutive delta_times as well as note values') do
     OPTIONS[:match_delta] = true
+  end
+
+  opts.on('--originality [ORIGINALITY]', Float, 'A higher value (close to 1) will select Markov chain values that lead to more possible choices (to avoid long unique sequences in the original piece)') do |o|
+    OPTIONS[:originality] = o
   end
 
   opts.on('--rand-seed [RAND_SEED]', Integer, 'Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)') do |r|
@@ -61,6 +64,12 @@ class Array
 
   def sample
     self[R.rand(length)]
+  end
+
+  def sample_toward(length_ratio)
+    target_index = [0, (length_ratio * length).round, length - 1].sort[1]
+    index = 3.times.collect { |i| R.rand(length) }.min_by { |i| (target_index - i).abs }
+    self[index]
   end
 end
 
@@ -159,23 +168,30 @@ def generate_markov_map(midi_files)
   markov_map
 end
 
+def select_event_groups_from_candidates(markov_map, candidates)
+  if OPTIONS[:originality]
+    candidates.select{ |c| markov_map[c] }.sort_by { |c| markov_map[c].size }.sample_toward(OPTIONS[:originality])
+  else
+    candidates.sample
+  end
+end
+
 def generate_sequence(markov_map, num_steps)
   sequence = MIDI::Sequence.new
   track = MIDI::Track.new(sequence)
 
   # seed
-  previous_event_groups = markov_map.keys.sample
-  track.events += on_and_off_events(previous_event_groups.sample.midi_events)
+  event_groups = select_event_groups_from_candidates(markov_map, markov_map.keys)
+  track.events += on_and_off_events(event_groups.sample.midi_events)
   
   num_steps.times do
-    next_event_group_candidates = markov_map[previous_event_groups]
-    break unless next_event_group_candidates && next_event_group_candidates.any?
-    next_event_group = next_event_group_candidates.sample
+    event_group_candidates = markov_map[event_groups]
+    break unless event_group_candidates && event_group_candidates.any?
 
-    previous_event_groups.shift # rolling window of 'min_sequence' events as key
-    previous_event_groups << next_event_group
-
-    track.events += on_and_off_events(next_event_group.midi_events)
+    puts event_group_candidates.size
+    # rolling window of 'min_sequence' events as key
+    event_groups = select_event_groups_from_candidates(markov_map, event_group_candidates.collect { |c| event_groups[1..-1] << c })
+    track.events += on_and_off_events(event_groups.first.midi_events)
   end
   
   track.recalc_times
