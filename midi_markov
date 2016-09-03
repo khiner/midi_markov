@@ -31,6 +31,10 @@ OptionParser.new do |opts|
     OPTIONS[:rand_seed] = r
   end
 
+  opts.on('--group-deltas', 'Force all simultaneous notes to ge grouped together (uses the delta from the first note in the chord as the chord duration)') do
+    OPTIONS[:group_deltas] = true
+  end
+
   opts.on('--on-delta [ON_DELTA]', Integer, 'This value will be used for the delta_time value of each \'on\' note.  If not provided, delta_time values will be derived from source notes.') do |d|
     OPTIONS[:on_delta] = d
   end
@@ -108,22 +112,36 @@ def add_to_markov_map(markov_map, sequence)
   ordered_events = events_starting_at.values
 
   ordered_events.each_cons(OPTIONS[:min_sequence] + 1).each_with_index do |events, i|
-    key = events[0...-1]
+    key = events[0..-2]
     markov_map[key] ||= []
     markov_map[key] << events[-1]
   end
 end
 
 def on_and_off_events(midi_events)
-  # Temporary! Make all notes of equal length and create matching end events
   on_events = midi_events.collect do |midi_event|
-    MIDI::NoteOnEvent.new(OPTIONS[:drone] ? midi_event.delta_time : 0,
-      midi_event.note, midi_event.velocity, OPTIONS[:on_delta] || midi_event.delta_time)
+    MIDI::NoteOnEvent.new(
+      OPTIONS[:drone] ? midi_event.delta_time : 0,
+      midi_event.note,
+      midi_event.velocity,
+      OPTIONS[:on_delta] || midi_event.delta_time
+    )
   end
 
   off_events = midi_events.collect do |midi_event|
-    MIDI::NoteOffEvent.new(OPTIONS[:drone] ? midi_event.off.delta_time : 0,
-      midi_event.note, midi_event.off.velocity, OPTIONS[:off_delta] || midi_event.off.delta_time)
+    MIDI::NoteOffEvent.new(
+      OPTIONS[:drone] ? midi_event.off.delta_time : 0,
+      midi_event.note,
+      midi_event.off.velocity,
+      OPTIONS[:off_delta] || midi_event.off.delta_time
+    )
+  end
+
+  # if we want all notes in a group (chord) to start and end at the same time, only the first in the group should have a delta
+  if OPTIONS[:group_deltas]
+    [on_events, off_events].each do |events|
+      events[1..-1].each { |event| event.delta_time = 0 }
+    end
   end
 
   on_events + off_events
@@ -137,7 +155,7 @@ def generate_markov_map(midi_files)
     add_to_markov_map(markov_map, sequence)
   end
 
-  puts markov_map.values.collect(&:size).max
+  # puts markov_map.values.collect(&:size).max
   markov_map
 end
 
@@ -166,7 +184,9 @@ def generate_sequence(markov_map, num_steps)
   sequence
 end
 
+
 #===================================================================================
+
 input_midi_files = if File.directory?(OPTIONS[:midi_path])
   Find.find(OPTIONS[:midi_path]).select { |f| File.directory?(f) ? nil : f }.compact
 else
