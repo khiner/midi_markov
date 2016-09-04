@@ -21,6 +21,10 @@ OptionParser.new do |opts|
     OPTIONS[:length] = l
   end
 
+  opts.on('--rand-seed [RAND_SEED]', Integer, 'Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)') do |r|
+    OPTIONS[:rand_seed] = r
+  end
+
   opts.on('--match-length [MATCH_LENGTH]', Integer, 'Minimum length of sequences to match from input MIDI at each Markov step') do |m|
     OPTIONS[:match_length] = m
   end
@@ -35,10 +39,6 @@ OptionParser.new do |opts|
 
   opts.on('--originality [ORIGINALITY]', Float, 'A higher value (close to 1) will select Markov chain values that lead to more possible choices (to avoid long unique sequences in the original piece)') do |o|
     OPTIONS[:originality] = o
-  end
-
-  opts.on('--rand-seed [RAND_SEED]', Integer, 'Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)') do |r|
-    OPTIONS[:rand_seed] = r
   end
 
   opts.on('--group-deltas', 'Force all simultaneous notes to ge grouped together (uses the delta from the first note in the chord as the chord duration)') do
