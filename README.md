@@ -18,7 +18,7 @@ Usage: midi_markov [options]
     -l, --length [LENGTH]            Length of the generated piece in MIDI event groups (single notes or chords)
         --match-length [MATCH_LENGTH]
                                      Minimum length of sequences to match from input MIDI at each Markov step
-        --match-delta                Require generated notes to make delta_times as well as note values at each Markov step
+        --match-deltas               Require generated notes to make delta_times as well as note values at each Markov step
         --originality [ORIGINALITY]  A higher value (close to 1) will select Markov chain values that lead to more possible choices (to avoid long unique sequences in the original piece)
         --rand-seed [RAND_SEED]      Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)
         --group-deltas               Force all simultaneous notes to ge grouped together (uses the delta from the first note in the chord as the chord duration)

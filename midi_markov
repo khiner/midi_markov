@@ -25,8 +25,8 @@ OptionParser.new do |opts|
     OPTIONS[:match_length] = m
   end
 
-  opts.on('--match-delta', 'Require generated notes to make delta_times as well as note values at each Markov step') do
-    OPTIONS[:match_delta] = true
+  opts.on('--match-deltas', 'Require generated notes to make delta_times as well as note values at each Markov step') do
+    OPTIONS[:match_deltas] = true
   end
 
   # opts.on('--allow-inversions', 'For chords, only enforce equality on note qualities, ignoring octaves') do
@@ -95,11 +95,11 @@ class MidiEventGroup
   def eql?(other_event_group)
     self.class == other_event_group.class &&
     self.notes == other_event_group.notes &&
-    (!OPTIONS[:match_delta] || self.delta_times == other_event_group.delta_times)
+    (!OPTIONS[:match_deltas] || self.delta_times == other_event_group.delta_times)
   end
 
   def hash
-    OPTIONS[:match_delta] ? (@notes + @delta_times).hash : @notes.hash
+    OPTIONS[:match_deltas] ? (@notes + @delta_times).hash : @notes.hash
   end
 
   def <<(midi_event)
