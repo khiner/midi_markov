@@ -1,8 +1,8 @@
-haydn_drone_1: --rand-seed=901 --drone --on-delta=0 --off-delta=0 --midi-path=../midi_files/haydn
-chopin_1: --rand-seed=881 --midi-path=../midi_files/chopin
-chopin_2: --rand-seed=702 --midi-path=../midi_files/chopin
-chopin_3: --rand-seed=249 --midi-path=../midi_files/chopin
+haydn_drone_1: --rand-seed=901 --drone --on-delta=0 --off-delta=0 --input-path=../midi_files/haydn
+chopin_1: --rand-seed=881 --input-path=../midi_files/chopin
+chopin_2: --rand-seed=702 --input-path=../midi_files/chopin
+chopin_3: --rand-seed=249 --input-path=../midi_files/chopin
 all_1: --min-sequence=4 --rand-seed=254
 all_2: --min-sequence=4 --on-delta=0 --rand-seed=900
 all_3: --match-delta --rand-seed=402
-albeniz_1: --rand-seed=402 --length=384 --midi-path=../midi_files/albeniz/
+albeniz_1: --rand-seed=402 --length=384 --input-path=../midi_files/albeniz/

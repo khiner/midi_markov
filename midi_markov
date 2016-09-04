@@ -7,13 +7,17 @@ require 'pry'
 
 OPTIONS = {}
 OptionParser.new do |opts|
-  opts.banner = 'Usage: midi_markov [options] {midi_file_path}'
+  opts.banner = 'Usage: midi_markov [options]'
 
-  opts.on('--midi-path [FILE]', String, 'Path of MIDI file or directory to recursively search for MIDI files for training the Markov model') do |f|
-    OPTIONS[:midi_path] = f
+  opts.on('-i', '--input-path [FILE]', String, 'Path of MIDI file or directory to recursively search for MIDI files for training the Markov model') do |f|
+    OPTIONS[:input_path] = f
   end
 
-  opts.on('--length [LENGTH]', Integer, 'Length of the generated piece') do |l|
+  opts.on('-o', '--output-path [OUTPUT_PATH]', String, 'Path to output generated MIDI file') do |output_path|
+    OPTIONS[:output_path] = output_path
+  end
+
+  opts.on('-l', '--length [LENGTH]', Integer, 'Length of the generated piece') do |l|
     OPTIONS[:length] = l
   end
 
@@ -54,10 +58,12 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-OPTIONS[:midi_path] ||= './midi_files'
+OPTIONS[:input_path] ||= './midi_files'
 OPTIONS[:length] ||= 8 * 32
 OPTIONS[:min_sequence] ||= 2
 OPTIONS[:rand_seed] ||= rand(10_000)
+OPTIONS[:output_path] ||= 'markov.mid'
+OPTIONS[:output_path] = OPTIONS[:output_path] + '.mid' unless OPTIONS[:output_path].end_with?('.mid')
 
 puts "Using rand-seed value of #{OPTIONS[:rand_seed]}"
 
@@ -203,13 +209,13 @@ end
 
 #===================================================================================
 
-input_midi_files = if File.directory?(OPTIONS[:midi_path])
-  Find.find(OPTIONS[:midi_path]).select { |f| File.directory?(f) ? nil : f }.compact
+input_midi_files = if File.directory?(OPTIONS[:input_path])
+  Find.find(OPTIONS[:input_path]).select { |f| File.directory?(f) ? nil : f }.compact
 else
-  [OPTIONS[:midi_path]]
+  [OPTIONS[:input_path]]
 end
 
 markov_map = generate_markov_map(input_midi_files)
 sequence = generate_sequence(markov_map, OPTIONS[:length])
-File.open('markov.mid', 'wb') { | file | sequence.write(file) }
-`timidity markov.mid 2> /dev/null`
+File.open(OPTIONS[:output_path], 'wb') { | file | sequence.write(file) }
+`timidity #{OPTIONS[:output_path]} 2> /dev/null`
