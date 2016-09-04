@@ -17,15 +17,15 @@ OptionParser.new do |opts|
     OPTIONS[:output_path] = output_path
   end
 
-  opts.on('-l', '--length [LENGTH]', Integer, 'Length of the generated piece') do |l|
+  opts.on('-l', '--length [LENGTH]', Integer, 'Length of the generated piece in MIDI event groups (single notes or chords)') do |l|
     OPTIONS[:length] = l
   end
 
-  opts.on('--min-sequence [MIN_SEQUENCE]', Integer, 'Specify minimum lenght of identical sequence') do |m|
-    OPTIONS[:min_sequence] = m
+  opts.on('--match-length [MATCH_LENGTH]', Integer, 'Minimum length of sequences to match from input MIDI at each Markov step') do |m|
+    OPTIONS[:match_length] = m
   end
 
-  opts.on('--match-delta', 'Require generated notes to have consecutive delta_times as well as note values') do
+  opts.on('--match-delta', 'Require generated notes to make delta_times as well as note values at each Markov step') do
     OPTIONS[:match_delta] = true
   end
 
@@ -45,11 +45,11 @@ OptionParser.new do |opts|
     OPTIONS[:group_deltas] = true
   end
 
-  opts.on('--on-delta [ON_DELTA]', Integer, 'This value will be used for the delta_time value of each \'on\' note.  If not provided, delta_time values will be derived from source notes.') do |d|
+  opts.on('--on-delta [ON_DELTA]', Integer, 'This value will be used for the delta_time value of each \'on\' note.  If not provided, values will be derived from source notes.') do |d|
     OPTIONS[:on_delta] = d
   end
 
-  opts.on('--off-delta [OFF_DELTA]', Integer, 'This value will be used for the delta_time value of each \'off\' note.  If not provided, delta_time values will be derived from source notes.') do |d|
+  opts.on('--off-delta [OFF_DELTA]', Integer, 'This value will be used for the delta_time value of each \'off\' note.  If not provided, values will be derived from source notes.') do |d|
     OPTIONS[:off_delta] = d
   end
 
@@ -60,7 +60,7 @@ end.parse!
 
 OPTIONS[:input_path] ||= './midi_files'
 OPTIONS[:length] ||= 8 * 32
-OPTIONS[:min_sequence] ||= 2
+OPTIONS[:match_length] ||= 2
 OPTIONS[:rand_seed] ||= rand(10_000)
 OPTIONS[:output_path] ||= 'markov.mid'
 OPTIONS[:output_path] = OPTIONS[:output_path] + '.mid' unless OPTIONS[:output_path].end_with?('.mid')
@@ -132,7 +132,7 @@ def add_sequence_to_markov_map(sequence, markov_map)
 
   ordered_events = events_starting_at.values
 
-  ordered_events.each_cons(OPTIONS[:min_sequence] + 1).each_with_index do |events, i|
+  ordered_events.each_cons(OPTIONS[:match_length] + 1).each_with_index do |events, i|
     key = events[0..-2]
     markov_map[key] ||= []
     markov_map[key] << events[-1]
@@ -196,7 +196,7 @@ def generate_sequence(markov_map, num_steps)
   
   num_steps.times do
     track.events += on_and_off_events(event_groups.first.midi_events)
-    # rolling window of 'min_sequence' EventGroups as key
+    # rolling window of 'match_length' EventGroups as key
     candidates = markov_map[event_groups].collect { |c| event_groups[1..-1] << c }
     # puts candidates.size
     event_groups = select_event_groups_from_candidates(markov_map, candidates)
