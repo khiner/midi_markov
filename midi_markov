@@ -77,7 +77,7 @@ class Array
 
   def sample_toward(length_ratio)
     target_index = [0, (length_ratio * length).round, length - 1].sort[1] # clip to array length
-    index = 3.times.collect { |i| R.rand(length) }.min_by { |i| (target_index - i).abs }
+    index = 3.times.collect { |i| R.rand(length) }.min_by { |i| (target_index - i).abs } # find the closest random value out of 3 attempts
     self[index]
   end
 end
