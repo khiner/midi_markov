@@ -33,6 +33,11 @@ Usage: midi_markov [options]
 If no `rand-seed` value is provided, a random one is used and the first output line you will see after running will display the value used (e.g. "Using rand-seed value of 7675").
 
 ### match-length option
+`match-length` is the number is previous notes or chords in the generated sequence that must be matched when finding the next note or chord.
+
+For example, consider this input sequence:
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Beethoven_symphony_5_opening.svg/2000px-Beethoven_symphony_5_opening.svg.png)
 
 ### match-deltas option
 
