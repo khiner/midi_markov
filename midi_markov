@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'midilib'
-require 'set'
 require 'find'
 require 'optparse'
 require 'pry'
@@ -25,6 +24,10 @@ OptionParser.new do |opts|
   opts.on('--match-delta', 'Require generated notes to have consecutive delta_times as well as note values') do
     OPTIONS[:match_delta] = true
   end
+
+  # opts.on('--allow-inversions', 'For chords, only enforce equality on note qualities, ignoring octaves') do
+  #   OPTIONS[:allow_inversions] = true
+  # end
 
   opts.on('--originality [ORIGINALITY]', Float, 'A higher value (close to 1) will select Markov chain values that lead to more possible choices (to avoid long unique sequences in the original piece)') do |o|
     OPTIONS[:originality] = o
@@ -67,7 +70,7 @@ class Array
   end
 
   def sample_toward(length_ratio)
-    target_index = [0, (length_ratio * length).round, length - 1].sort[1]
+    target_index = [0, (length_ratio * length).round, length - 1].sort[1] # clip to array length
     index = 3.times.collect { |i| R.rand(length) }.min_by { |i| (target_index - i).abs }
     self[index]
   end
@@ -79,13 +82,14 @@ class MidiEventGroup
 
   def initialize(midi_events=[])
     @midi_events = midi_events
-    @notes = midi_events.collect(&:note)
-    @delta_times = midi_events.collect(&:off).collect(&:delta_time)
+    @notes = midi_events.collect(&:note).sort
+    @delta_times = midi_events.collect(&:off).collect(&:delta_time).sort
   end
 
   def eql?(other_event_group)
-    self.class == other_event_group.class && self.notes == other_event_group.notes &&
-      (!OPTIONS[:match_delta] || self.delta_times == other_event_group.delta_times)
+    self.class == other_event_group.class &&
+    self.notes == other_event_group.notes &&
+    (!OPTIONS[:match_delta] || self.delta_times == other_event_group.delta_times)
   end
 
   def hash
@@ -93,11 +97,13 @@ class MidiEventGroup
   end
 
   def <<(midi_event)
-    @midi_events ||= []
     @midi_events << midi_event
-    @notes ||= Set.new
+
     @notes << midi_event.note
+    @notes.sort!
+
     @delta_times << midi_event.off.delta_time
+    @delta_times.sort!
   end
 
   def to_s
@@ -106,7 +112,7 @@ class MidiEventGroup
 end
 
 
-def add_to_markov_map(markov_map, sequence)
+def add_sequence_to_markov_map(sequence, markov_map)
   events_starting_at = {}
   sequence.each do |track|
     track.each do |event|
@@ -130,7 +136,7 @@ end
 def on_and_off_events(midi_events)
   on_events = midi_events.collect do |midi_event|
     MIDI::NoteOnEvent.new(
-      OPTIONS[:drone] ? midi_event.delta_time : 0,
+      OPTIONS[:drone] ? midi_event.delta_time : 0, # intentional bug (should be midi channel)
       midi_event.note,
       midi_event.velocity,
       OPTIONS[:on_delta] || midi_event.delta_time
@@ -139,7 +145,7 @@ def on_and_off_events(midi_events)
 
   off_events = midi_events.collect do |midi_event|
     MIDI::NoteOffEvent.new(
-      OPTIONS[:drone] ? midi_event.off.delta_time : 0,
+      OPTIONS[:drone] ? midi_event.off.delta_time : 0, # intentional bug (should be midi channel)
       midi_event.note,
       midi_event.off.velocity,
       OPTIONS[:off_delta] || midi_event.off.delta_time
@@ -161,9 +167,8 @@ def generate_markov_map(midi_files)
   midi_files.each do |midi_file|
     sequence = MIDI::Sequence.new
     File.open(midi_file, 'rb') { |f| sequence.read(f) }
-    add_to_markov_map(markov_map, sequence)
+    add_sequence_to_markov_map(sequence, markov_map)
   end
-
   # puts markov_map.values.collect(&:size).max
   markov_map
 end
@@ -182,21 +187,16 @@ def generate_sequence(markov_map, num_steps)
 
   # seed
   event_groups = select_event_groups_from_candidates(markov_map, markov_map.keys)
-  track.events += on_and_off_events(event_groups.sample.midi_events)
   
   num_steps.times do
-    event_group_candidates = markov_map[event_groups]
-    break unless event_group_candidates && event_group_candidates.any?
-
-    puts event_group_candidates.size
-    # rolling window of 'min_sequence' events as key
-    event_groups = select_event_groups_from_candidates(markov_map, event_group_candidates.collect { |c| event_groups[1..-1] << c })
     track.events += on_and_off_events(event_groups.first.midi_events)
+    # rolling window of 'min_sequence' EventGroups as key
+    candidates = markov_map[event_groups].collect { |c| event_groups[1..-1] << c }
+    # puts candidates.size
+    event_groups = select_event_groups_from_candidates(markov_map, candidates)
   end
   
-  track.recalc_times
   sequence.tracks << track
-
   sequence
 end
 
