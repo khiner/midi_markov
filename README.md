@@ -35,9 +35,46 @@ If no `rand-seed` value is provided, a random one is used and the first output l
 ### match-length option
 `match-length` is the number is previous notes or chords in the generated sequence that must be matched when finding the next note or chord.
 
-For example, consider this input sequence:
+For example, consider the Markov map created from Beethoven's 5th:
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Beethoven_symphony_5_opening.svg/2000px-Beethoven_symphony_5_opening.svg.png)
+
+This would be what the Markov map would look like if `match-length` were set to `1`: 
+
+```
+G => (G, G, E) # since a single G is followed by two Gs and one E in the sequence
+E => (F)
+F => (F, F, D)
+D => ()
+```
+
+If the last note played in the sequence were an F, for the next note we are twice as likely to choose another F as we are a D.
+
+However, if `match-length` were set to `2`, the keys in the map would be two note sequences:
+
+```
+[G,G] => (G, E) # since two consecutive Gs are followed by one G and one E in the sequence
+[G,E] => (F)
+[E,F] => (F)
+[F,F] => (F,D)
+[F,D] => (D)
+[F,F] => (F, D)
+[F,D] => ()
+```
+
+Finally, if `match-length` were `3`, the keys would be three-note sequences:
+
+```
+[G,G,G] => (E) # since two consecutive Gs are followed by one G and one E in the sequence
+[G,G,E] => (F)
+[G,E,F] => (F)
+[E,F,F] => (F)
+[F,F,F] => (D)
+[F,F,D] => ()
+```
+
+This demonstrates how higher `match-length` values result in fewer choices at each step (with `match-length=3`, we only have one choice at each step!), and can result in passages that follow a specific sequence in a piece until reaching a branch at a common sequence that occurs in another piece.
+
 
 ### match-deltas option
 
