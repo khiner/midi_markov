@@ -78,11 +78,30 @@ This demonstrates how higher `match-length` values result in fewer choices at ea
 
 ### match-deltas option
 
+`match-deltas` puts further restrictions on what is considered a sequence-match by including both the note value and the note duration in the Markov map key.
+
+Specifying this option will generally result in pieces that more closely resemble the source material and will tend to sound more musical, but will also be less original.
+
+
+### originality option
+
+`originality` is a value between 0 and 1 that causes the Markov generator to make choices at each step that will minimize (close to 0) or maximize (close to 1) the options that will be available at the next step.
+
+Values close to 0 will tend to follow unique passages in the source material, while values towards 1 tend to create meandering, mostly single-note melodies, since specific single notes are more common than specific chords, and thus lead to more choices.
+
+
 ### group-deltas option
 
-### on/off-delta option
+`group-deltas` forces notes that occurred together in the original piece to always play simultaneously.
+
+
+### on/off-delta options
+
+`on-delta` or `off-delta` can be used to specify exact delta values (durations) for on or off events, rather than deriving those values from the source material.  The values given will be used for every note, resulting in a rhytmically uniform generated piece.
+
 
 ### drone option
 
+`drone` is a little bug I decided to keep in which prevents notes from starting and ending on the same channel, resulting in stacked notes that start but don't always get stopped.  It can create some slow-moving ambient tones.
 
 [More thoughts](https://karl-hiner.squarespace.com/blog/2016/8/27/creating-harmonically-rich-drones-from-midi-files)
