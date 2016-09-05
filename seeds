@@ -1,0 +1,8 @@
+-r 7680 -n 0  -i midi_files/albeniz
+-d -r 7434 -i midi_files/bach
+-r 7853 -i midi_files/bach
+-r 2631 -n 0 -i midi_files/beethoven
+-d -r 9150 -i midi_files/chopin
+-r 5002 -i midi_files/haydn
+-d -r 4176 -i midi_files/haydn
+-r 7829 -n 0 -i midi_files/haydn
