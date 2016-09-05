@@ -6,3 +6,7 @@ all_1: --match-length=4 --rand-seed=254
 all_2: --match-length=4 --on-delta=0 --rand-seed=900
 all_3: --match-deltas --rand-seed=402
 albeniz_1: --rand-seed=402 --length=384 --input-path=../midi_files/albeniz/
+
+-d -r 7434 -i midi_files/bach
+-r 7853 -i midi_files/bach
+-r 4999 -i midi_files/beethoven

@@ -197,9 +197,11 @@ def generate_sequence(markov_map, num_steps)
   num_steps.times do
     track.events += on_and_off_events(event_groups.first.midi_events)
     # rolling window of 'match_length' EventGroups as key
-    candidates = markov_map[event_groups].collect { |c| event_groups[1..-1] << c }
+    candidate_events = markov_map[event_groups]
+    break unless candidate_events
+    candidate_keys = candidate_events.collect { |c| event_groups[1..-1] << c }
     # puts candidates.size
-    event_groups = select_event_groups_from_candidates(markov_map, candidates)
+    event_groups = select_event_groups_from_candidates(markov_map, candidate_keys)
   end
   
   sequence.tracks << track
