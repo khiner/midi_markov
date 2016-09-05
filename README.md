@@ -11,20 +11,19 @@ $ ./midi_markov # defaults to using the entire midi_files directory as input. Ma
 
 ## Options
 ```
-$ ./midi_markov --help                                                        
 Usage: midi_markov [options]
     -i, --input-path [FILE]          Path of MIDI file or directory to recursively search for MIDI files for training the Markov model
     -o, --output-path [OUTPUT_PATH]  Path to output generated MIDI file
     -l, --length [LENGTH]            Length of the generated piece in MIDI event groups (single notes or chords)
-        --rand-seed [RAND_SEED]      Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)
+    -r, --rand-seed [RAND_SEED]      Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)
         --match-length [MATCH_LENGTH]
                                      Minimum length of sequences to match from input MIDI at each Markov step
         --match-deltas               Require generated notes to make delta_times as well as note values at each Markov step
-        --originality [ORIGINALITY]  A higher value (close to 1) will select Markov chain values that lead to more possible choices (to avoid long unique sequences in the original piece)
         --group-deltas               Force all simultaneous notes to ge grouped together (uses the delta from the first note in the chord as the chord duration)
-        --on-delta [ON_DELTA]        This value will be used for the delta_time value of each 'on' note.  If not provided, values will be derived from source notes.
-        --off-delta [OFF_DELTA]      This value will be used for the delta_time value of each 'off' note.  If not provided, values will be derived from source notes.
-        --drone                      Introduce a little bug that makes things drone-y
+    -n, --on-delta [ON_DELTA]        This value will be used for the delta_time value of each 'on' note.  If not provided, values will be derived from source notes.
+    -f, --off-delta [OFF_DELTA]      This value will be used for the delta_time value of each 'off' note.  If not provided, values will be derived from source notes.
+    -g, --originality [ORIGINALITY]  A higher value (close to 1) will select Markov chain values that lead to more possible choices (to avoid long unique sequences in the original piece)
+    -d, --drone                      Introduce a little bug that makes things drone-y
 ```
 
 ### rand-seed option
@@ -83,13 +82,6 @@ This demonstrates how higher `match-length` values result in fewer choices at ea
 Specifying this option will generally result in pieces that more closely resemble the source material and will tend to sound more musical, but will also be less original.
 
 
-### originality option
-
-`originality` is a value between 0 and 1 that causes the Markov generator to make choices at each step that will minimize (close to 0) or maximize (close to 1) the options that will be available at the next step.
-
-Values close to 0 will tend to follow unique passages in the source material, while values towards 1 tend to create meandering, mostly single-note melodies, since specific single notes are more common than specific chords, and thus lead to more choices.
-
-
 ### group-deltas option
 
 `group-deltas` forces notes that occurred together in the original piece to always play simultaneously.
@@ -98,6 +90,13 @@ Values close to 0 will tend to follow unique passages in the source material, wh
 ### on/off-delta options
 
 `on-delta` or `off-delta` can be used to specify exact delta values (durations) for on or off events, rather than deriving those values from the source material.  The values given will be used for every note, resulting in a rhytmically uniform generated piece.
+
+
+### originality option
+
+`originality` is a value between 0 and 1 that causes the Markov generator to make choices at each step that will minimize (close to 0) or maximize (close to 1) the options that will be available at the next step.
+
+Values close to 0 will tend to follow unique passages in the source material, while values towards 1 tend to create meandering, mostly single-note melodies, since specific single notes are more common than specific chords, and thus lead to more choices.
 
 
 ### drone option

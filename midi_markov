@@ -21,7 +21,7 @@ OptionParser.new do |opts|
     OPTIONS[:length] = l
   end
 
-  opts.on('--rand-seed [RAND_SEED]', Integer, 'Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)') do |r|
+  opts.on('-r', '--rand-seed [RAND_SEED]', Integer, 'Specify the seed used in the randomization of the generated pieces (to reproduce the exact same midi)') do |r|
     OPTIONS[:rand_seed] = r
   end
 
@@ -33,27 +33,27 @@ OptionParser.new do |opts|
     OPTIONS[:match_deltas] = true
   end
 
-  # opts.on('--allow-inversions', 'For chords, only enforce equality on note qualities, ignoring octaves') do
-  #   OPTIONS[:allow_inversions] = true
-  # end
-
-  opts.on('--originality [ORIGINALITY]', Float, 'A higher value (close to 1) will select Markov chain values that lead to more possible choices (to avoid long unique sequences in the original piece)') do |o|
-    OPTIONS[:originality] = o
-  end
-
   opts.on('--group-deltas', 'Force all simultaneous notes to ge grouped together (uses the delta from the first note in the chord as the chord duration)') do
     OPTIONS[:group_deltas] = true
   end
 
-  opts.on('--on-delta [ON_DELTA]', Integer, 'This value will be used for the delta_time value of each \'on\' note.  If not provided, values will be derived from source notes.') do |d|
+  opts.on('-n', '--on-delta [ON_DELTA]', Integer, 'This value will be used for the delta_time value of each \'on\' note.  If not provided, values will be derived from source notes.') do |d|
     OPTIONS[:on_delta] = d
   end
 
-  opts.on('--off-delta [OFF_DELTA]', Integer, 'This value will be used for the delta_time value of each \'off\' note.  If not provided, values will be derived from source notes.') do |d|
+  opts.on('-f', '--off-delta [OFF_DELTA]', Integer, 'This value will be used for the delta_time value of each \'off\' note.  If not provided, values will be derived from source notes.') do |d|
     OPTIONS[:off_delta] = d
   end
 
-  opts.on('--drone', 'Introduce a little bug that makes things drone-y') do
+  # opts.on('--allow-inversions', 'For chords, only enforce equality on note qualities, ignoring octaves') do
+  #   OPTIONS[:allow_inversions] = true
+  # end
+
+  opts.on('-g', '--originality [ORIGINALITY]', Float, 'A higher value (close to 1) will select Markov chain values that lead to more possible choices (to avoid long unique sequences in the original piece)') do |o|
+    OPTIONS[:originality] = o
+  end
+
+  opts.on('-d', '--drone', 'Introduce a little bug that makes things drone-y') do
     OPTIONS[:drone] = true
   end
 end.parse!
