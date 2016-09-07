@@ -30,7 +30,7 @@ Usage: midi_markov [options]
 ```
 
 ### rand-seed option
-`rand-seed` is a way to produce identical results with multiple runs of the program.  `rand-seed` (an integer) is used for all of the nondeterministic aspects of the algorithm, and can be thought of as the "address" of the generated piece within the program.  If you produce a piece you like, this repo along your `rand-seed` value is all that is needed to reproduce it exactly!
+`rand-seed` is a way to produce identical results with multiple runs of the program.  `rand-seed` (an integer) is used for all of the nondeterministic aspects of the algorithm, and can be thought of as the address of the generated piece within the program.  If you produce a piece you like, this repo along your `rand-seed` value is all that is needed to reproduce it exactly!
 
 If no `rand-seed` value is provided, a random one is used and the first output line you will see after running will display the value used (e.g. "Using rand-seed value of 7675").
 
