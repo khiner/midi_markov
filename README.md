@@ -4,6 +4,9 @@ A script that takes a MIDI file, or directory containing MIDI files, and outputs
 
 ## Usage
 ```
+$ git clone git@github.com:khiner/midi_markov.git
+$ cd midi_markov
+$ gem install bundler
 $ bundle install
 $ brew install timidity
 $ ./midi_markov # defaults to using the entire midi_files directory as input. May take a little while (30 seconds or so)
