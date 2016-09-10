@@ -106,4 +106,4 @@ Values close to 0 will tend to follow unique passages in the source material, wh
 
 `drone` is a little bug I decided to keep in which prevents notes from starting and ending on the same channel, resulting in stacked notes that start but don't always get stopped.  It can create some slow-moving ambient tones.
 
-[More thoughts](https://karl-hiner.squarespace.com/blog/2016/8/27/fun-generating-midi-with-markov-chains)
+[More thoughts](http://karlhiner.com/music_generation/midi_markov/)
